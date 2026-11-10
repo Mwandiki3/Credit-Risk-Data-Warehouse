@@ -1,0 +1,294 @@
+-- This script creates the physical staging tables in the silver schema.
+-- It maps every column to an optimized native data type instead of varchar(255).
+-- It ensures type safety and prevents conversion errors during data ingestion.
+--------------------------------------------------------------------------------
+
+-- 1. silver STAGING: application_train
+--------------------------------------------------------------------------------
+IF OBJECT_ID('silver.hc_application_train', 'U') IS NOT NULL
+    DROP TABLE silver.hc_application_train;
+
+CREATE TABLE silver.hc_application_train (
+    SK_ID_CURR INT,
+    TARGET INT,
+    NAME_CONTRACT_TYPE VARCHAR(50),
+    CODE_GENDER VARCHAR(50),
+    FLAG_OWN_CAR CHAR(1),
+    FLAG_OWN_REALTY CHAR(1),
+    CNT_CHILDREN INT,
+    AMT_INCOME_TOTAL DECIMAL(18, 4),
+    AMT_CREDIT DECIMAL(18, 4),
+    AMT_ANNUITY DECIMAL(18, 4),
+    AMT_GOODS_PRICE DECIMAL(18, 4),
+    NAME_TYPE_SUITE VARCHAR(50),
+    NAME_INCOME_TYPE VARCHAR(50),
+    NAME_EDUCATION_TYPE VARCHAR(50),
+    NAME_FAMILY_STATUS VARCHAR(50),
+    NAME_HOUSING_TYPE VARCHAR(50),
+    REGION_POPULATION_RELATIVE DECIMAL(18, 6),
+    DAYS_BIRTH INT,
+    DAYS_EMPLOYED INT,
+    DAYS_REGISTRATION INT,
+    DAYS_ID_PUBLISH INT,
+    OWN_CAR_AGE INT,
+    FLAG_MOBIL INT,
+    FLAG_EMP_PHONE INT,
+    FLAG_WORK_PHONE INT,
+    FLAG_CONT_MOBILE INT,
+    FLAG_PHONE INT,
+    FLAG_EMAIL INT,
+    OCCUPATION_TYPE VARCHAR(50),
+    CNT_FAM_MEMBERS DECIMAL(18, 2),
+    REGION_RATING_CLIENT INT,
+    REGION_RATING_CLIENT_W_CITY INT,
+    WEEKDAY_APPR_PROCESS_START VARCHAR(20),
+    HOUR_APPR_PROCESS_START INT,
+    REG_REGION_NOT_LIVE_REGION INT,
+    REG_REGION_NOT_WORK_REGION INT,
+    LIVE_REGION_NOT_WORK_REGION INT,
+    REG_CITY_NOT_LIVE_CITY INT,
+    REG_CITY_NOT_WORK_CITY INT,
+    LIVE_CITY_NOT_WORK_CITY INT,
+    ORGANIZATION_TYPE VARCHAR(100),
+    EXT_SOURCE_1 DECIMAL(18, 8),
+    EXT_SOURCE_2 DECIMAL(18, 8),
+    EXT_SOURCE_3 DECIMAL(18, 8),
+    APARTMENTS_AVG DECIMAL(18, 6),
+    BASEMENTAREA_AVG DECIMAL(18, 6),
+    YEARS_BEGINEXPLUATATION_AVG DECIMAL(18, 6),
+    YEARS_BUILD_AVG DECIMAL(18, 6),
+    COMMONAREA_AVG DECIMAL(18, 6),
+    ELEVATORS_AVG DECIMAL(18, 6),
+    ENTRANCES_AVG DECIMAL(18, 6),
+    FLOORSMAX_AVG DECIMAL(18, 6),
+    FLOORSMIN_AVG DECIMAL(18, 6),
+    LANDAREA_AVG DECIMAL(18, 6),
+    LIVINGAPARTMENTS_AVG DECIMAL(18, 6),
+    LIVINGAREA_AVG DECIMAL(18, 6),
+    NONLIVINGAPARTMENTS_AVG DECIMAL(18, 6),
+    NONLIVINGAREA_AVG DECIMAL(18, 6),
+    APARTMENTS_MODE DECIMAL(18, 6),
+    BASEMENTAREA_MODE DECIMAL(18, 6),
+    YEARS_BEGINEXPLUATATION_MODE DECIMAL(18, 6),
+    YEARS_BUILD_MODE DECIMAL(18, 6),
+    COMMONAREA_MODE DECIMAL(18, 6),
+    ELEVATORS_MODE DECIMAL(18, 6),
+    ENTRANCES_MODE DECIMAL(18, 6),
+    FLOORSMAX_MODE DECIMAL(18, 6),
+    FLOORSMIN_MODE DECIMAL(18, 6),
+    LANDAREA_MODE DECIMAL(18, 6),
+    LIVINGAPARTMENTS_MODE DECIMAL(18, 6),
+    LIVINGAREA_MODE DECIMAL(18, 6),
+    NONLIVINGAPARTMENTS_MODE DECIMAL(18, 6),
+    NONLIVINGAREA_MODE DECIMAL(18, 6),
+    APARTMENTS_MEDI DECIMAL(18, 6),
+    BASEMENTAREA_MEDI DECIMAL(18, 6),
+    YEARS_BEGINEXPLUATATION_MEDI DECIMAL(18, 6),
+    YEARS_BUILD_MEDI DECIMAL(18, 6),
+    COMMONAREA_MEDI DECIMAL(18, 6),
+    ELEVATORS_MEDI DECIMAL(18, 6),
+    ENTRANCES_MEDI DECIMAL(18, 6),
+    FLOORSMAX_MEDI DECIMAL(18, 6),
+    FLOORSMIN_MEDI DECIMAL(18, 6),
+    LANDAREA_MEDI DECIMAL(18, 6),
+    LIVINGAPARTMENTS_MEDI DECIMAL(18, 6),
+    LIVINGAREA_MEDI DECIMAL(18, 6),
+    NONLIVINGAPARTMENTS_MEDI DECIMAL(18, 6),
+    NONLIVINGAREA_MEDI DECIMAL(18, 6),
+    FONDKAPREMONT_MODE VARCHAR(50),
+    HOUSETYPE_MODE VARCHAR(50),
+    TOTALAREA_MODE DECIMAL(18, 6),
+    WALLSMATERIAL_MODE VARCHAR(50),
+    EMERGENCYSTATE_MODE VARCHAR(10),
+    OBS_30_CNT_SOCIAL_CIRCLE INT,
+    DEF_30_CNT_SOCIAL_CIRCLE INT,
+    OBS_60_CNT_SOCIAL_CIRCLE INT,
+    DEF_60_CNT_SOCIAL_CIRCLE INT,
+    DAYS_LAST_PHONE_CHANGE INT,
+    FLAG_DOCUMENT_2 INT,
+    FLAG_DOCUMENT_3 INT,
+    FLAG_DOCUMENT_4 INT,
+    FLAG_DOCUMENT_5 INT,
+    FLAG_DOCUMENT_6 INT,
+    FLAG_DOCUMENT_7 INT,
+    FLAG_DOCUMENT_8 INT,
+    FLAG_DOCUMENT_9 INT,
+    FLAG_DOCUMENT_10 INT,
+    FLAG_DOCUMENT_11 INT,
+    FLAG_DOCUMENT_12 INT,
+    FLAG_DOCUMENT_13 INT,
+    FLAG_DOCUMENT_14 INT,
+    FLAG_DOCUMENT_15 INT,
+    FLAG_DOCUMENT_16 INT,
+    FLAG_DOCUMENT_17 INT,
+    FLAG_DOCUMENT_18 INT,
+    FLAG_DOCUMENT_19 INT,
+    FLAG_DOCUMENT_20 INT,
+    FLAG_DOCUMENT_21 INT,
+    AMT_REQ_CREDIT_BUREAU_HOUR INT,
+    AMT_REQ_CREDIT_BUREAU_DAY INT,
+    AMT_REQ_CREDIT_BUREAU_WEEK INT,
+    AMT_REQ_CREDIT_BUREAU_MON INT,
+    AMT_REQ_CREDIT_BUREAU_QRT INT,
+    AMT_REQ_CREDIT_BUREAU_YEAR INT,
+    credit_dwh_create_date DATETIME DEFAULT GETDATE()
+);
+PRINT 'silver.hc_application_train table created successfully';
+--------------------------------------------------------------------------------
+-- 2. silver STAGING: bureau
+--------------------------------------------------------------------------------
+IF OBJECT_ID('silver.hc_bureau', 'U') IS NOT NULL
+    DROP TABLE silver.hc_bureau;
+
+CREATE TABLE silver.hc_bureau (
+    SK_ID_BUREAU INT,
+    SK_ID_CURR INT,
+    CREDIT_ACTIVE VARCHAR(50),
+    CREDIT_CURRENCY VARCHAR(10),
+    DAYS_CREDIT INT,
+    CREDIT_DAY_OVERDUE INT,
+    DAYS_CREDIT_ENDDATE INT,
+    DAYS_ENDDATE_FACT INT,
+    AMT_CREDIT_MAX_OVERDUE DECIMAL(18, 4),
+    CNT_CREDIT_PROLONG INT,
+    AMT_CREDIT_SUM DECIMAL(18, 4),
+    AMT_CREDIT_SUM_DEBT DECIMAL(18, 4),
+    AMT_CREDIT_SUM_LIMIT DECIMAL(18, 4),
+    AMT_CREDIT_SUM_OVERDUE DECIMAL(18, 4),
+    CREDIT_TYPE VARCHAR(50),
+    DAYS_CREDIT_UPDATE INT,
+    AMT_ANNUITY DECIMAL(18, 4),
+    credit_dwh_create_date DATETIME DEFAULT GETDATE()
+);
+PRINT 'silver.hc_bureau table created successfully!';
+--------------------------------------------------------------------------------
+-- 3. silver STAGING: bureau_balance
+--------------------------------------------------------------------------------
+IF OBJECT_ID('silver.hc_bureau_balance', 'U') IS NOT NULL
+    DROP TABLE silver.hc_bureau_balance;
+
+CREATE TABLE silver.hc_bureau_balance (
+    SK_ID_BUREAU INT,
+    MONTHS_BALANCE INT,
+    STATUS VARCHAR(50),
+    credit_dwh_create_date DATETIME DEFAULT GETDATE()
+);
+PRINT 'silver.hc_bureau_balance table created successfully!';
+--------------------------------------------------------------------------------
+-- 4. silver STAGING: credit_card_balance
+--------------------------------------------------------------------------------
+IF OBJECT_ID('silver.hc_credit_card_balance', 'U') IS NOT NULL
+    DROP TABLE silver.hc_credit_card_balance;
+
+CREATE TABLE silver.hc_credit_card_balance (
+    SK_ID_PREV INT,
+    SK_ID_CURR INT,
+    MONTHS_BALANCE INT,
+    AMT_BALANCE DECIMAL(18, 4),
+    AMT_CREDIT_LIMIT_ACTUAL DECIMAL(18, 4),
+    AMT_DRAWINGS_ATM_CURRENT DECIMAL(18, 4),
+    AMT_DRAWINGS_CURRENT DECIMAL(18, 4),
+    AMT_DRAWINGS_OTHER_CURRENT DECIMAL(18, 4),
+    AMT_DRAWINGS_POS_CURRENT DECIMAL(18, 4),
+    AMT_INST_MIN_REGULARITY DECIMAL(18, 4),
+    AMT_PAYMENT_CURRENT DECIMAL(18, 4),
+    AMT_PAYMENT_TOTAL_CURRENT DECIMAL(18, 4),
+    AMT_RECEIVABLE_PRINCIPAL DECIMAL(18, 4),
+    AMT_RECIVABLE DECIMAL(18, 4),
+    AMT_TOTAL_RECEIVABLE DECIMAL(18, 4),
+    CNT_DRAWINGS_ATM_CURRENT INT,        
+    CNT_DRAWINGS_CURRENT INT,            
+    CNT_DRAWINGS_OTHER_CURRENT INT,      
+    CNT_DRAWINGS_POS_CURRENT INT,        
+    CNT_INSTALMENT_MATURE_CUM INT,  
+    NAME_CONTRACT_STATUS VARCHAR(50),
+    SK_DPD INT,
+    SK_DPD_DEF INT,
+    credit_dwh_create_date DATETIME DEFAULT GETDATE()
+);
+PRINT 'silver.hc_credit_card_balance table created successfully!';
+-------------------------------------------------------------------------------
+-- 5. silver STAGING: instalments_payments
+-----------------------------------------------------------------------------
+IF OBJECT_ID('silver.hc_instalments_payments', 'U') IS NOT NULL
+    DROP TABLE silver.hc_instalments_payments;
+
+CREATE TABLE silver.hc_instalments_payments (
+    SK_ID_PREV INT,
+    SK_ID_CURR INT,
+    NUM_INSTALMENT_VERSION DECIMAL(18, 4),
+    NUM_INSTALMENT_NUMBER INT,
+    DAYS_INSTALMENT INT,            
+    DAYS_ENTRY_PAYMENT INT,        
+    AMT_INSTALMENT DECIMAL(18, 4),
+    AMT_PAYMENT DECIMAL(18, 4),
+    credit_dwh_create_date DATETIME DEFAULT GETDATE()
+);
+PRINT 'silver.hc_instalments_payments table created successfully!';
+------------------------------------------------------------------------------------
+--- 6. silver STAGING: posh_cash_balance
+---------------------------------------------------------------------------------------
+IF OBJECT_ID('silver.hc_posh_cash_balance', 'U') IS NOT NULL
+    DROP TABLE silver.hc_posh_cash_balance;
+
+CREATE TABLE silver.hc_posh_cash_balance (
+    SK_ID_PREV INT,
+    SK_ID_CURR INT,
+    MONTHS_BALANCE INT,
+    CNT_INSTALMENT INT,
+    CNT_INSTALMENT_FUTURE INT,
+    NAME_CONTRACT_STATUS VARCHAR(50),
+    SK_DPD INT,
+    SK_DPD_DEF INT,
+    credit_dwh_create_date DATETIME DEFAULT GETDATE()
+);
+PRINT 'silver.hc_posh_cash_balance table created successfully!';
+--------------------------------------------------------------------------------
+-- 7. silver STAGING: previous_application
+--------------------------------------------------------------------------------
+IF OBJECT_ID('silver.hc_previous_application', 'U') IS NOT NULL
+    DROP TABLE silver.hc_previous_application;
+
+CREATE TABLE silver.hc_previous_application (
+    SK_ID_PREV INT,
+    SK_ID_CURR INT,
+    NAME_CONTRACT_TYPE VARCHAR(50),
+    AMT_ANNUITY DECIMAL(18, 4),
+    AMT_APPLICATION DECIMAL(18, 4),
+    AMT_CREDIT DECIMAL(18, 4),
+    AMT_DOWN_PAYMENT DECIMAL(18, 4),
+    AMT_GOODS_PRICE DECIMAL(18, 4),
+    WEEKDAY_APPR_PROCESS_START VARCHAR(20),
+    HOUR_APPR_PROCESS_START INT,
+    FLAG_LAST_APPL_PER_CONTRACT CHAR(1),
+    NFLAG_LAST_APPL_IN_DAY INT,
+    RATE_DOWN_PAYMENT DECIMAL(18, 6),
+    RATE_INTEREST_PRIMARY DECIMAL(18, 6),
+    RATE_INTEREST_PRIVILEGED DECIMAL(18, 6),
+    NAME_CASH_LOAN_PURPOSE VARCHAR(100),
+    NAME_CONTRACT_STATUS VARCHAR(50),
+    DAYS_DECISION INT,
+    NAME_PAYMENT_TYPE VARCHAR(50),
+    CODE_REJECT_REASON VARCHAR(50),
+    NAME_TYPE_SUITE VARCHAR(50),
+    NAME_CLIENT_TYPE VARCHAR(50),
+    NAME_GOODS_CATEGORY VARCHAR(50),
+    NAME_PORTFOLIO VARCHAR(50),
+    NAME_PRODUCT_TYPE VARCHAR(50),
+    CHANNEL_TYPE VARCHAR(50),
+    SELLERPLACE_AREA INT,
+    NAME_SELLER_INDUSTRY VARCHAR(50),
+    CNT_PAYMENT INT,
+    NAME_YIELD_GROUP VARCHAR(50),
+    PRODUCT_COMBINATION VARCHAR(100),
+    DAYS_FIRST_DRAWING INT,
+    DAYS_FIRST_DUE INT,
+    DAYS_LAST_DUE_1ST_VERSION INT,
+    DAYS_LAST_DUE INT,
+    DAYS_TERMINATION INT,
+    NFLAG_INSURED_ON_APPROVAL INT,
+    credit_dwh_create_date DATETIME DEFAULT GETDATE()
+);
+PRINT 'silver.hc_previous_application table created successfully!';
+
+PRINT 'All 7 silver staging tables created successfully!';
