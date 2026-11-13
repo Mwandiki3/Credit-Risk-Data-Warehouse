@@ -50,10 +50,10 @@ SELECT
     TRY_CAST(NULLIF(TRIM(TARGET), '') AS INT),
     NULLIF(TRIM(NAME_CONTRACT_TYPE), ''),
     CASE UPPER(TRIM(CODE_GENDER)) 
-        WHEN 'F' THEN 'Female' 
-        WHEN 'M' THEN 'Male' 
-        ELSE NULLIF(TRIM(CODE_GENDER), '') 
-    END,
+    WHEN 'F' THEN 'Female' 
+    WHEN 'M' THEN 'Male' 
+    ELSE 'not avaialable' 
+END,
     NULLIF(TRIM(FLAG_OWN_CAR), ''),
     NULLIF(TRIM(FLAG_OWN_REALTY), ''),
     TRY_CAST(NULLIF(TRIM(CNT_CHILDREN), '') AS INT),
