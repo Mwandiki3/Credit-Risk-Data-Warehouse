@@ -21,7 +21,7 @@
 | **1** | `customer_id` | `hc_application_train.SK_ID_CURR` | `INT` | Unique primary identifier assigned to each loan applicant. | `100002`, `100003`, `456255` |
 | **2** | `default_flag` | `hc_application_train.TARGET` | `INT` | Target risk indicator: `1` = client experienced payment difficulties, `0` = loan repaid normally. | `0`, `1` |
 | **3** | `contract_type` | `hc_application_train.NAME_CONTRACT_TYPE` | `VARCHAR` | Category of the loan product requested by the applicant. | `'Cash loans'`, `'Revolving loans'` |
-| **4** | `customer_gender` | `hc_application_train.CODE_GENDER` | `VARCHAR` | Biological/declared gender of the applicant. | `'M'`, `'F'`, `'XNA'` |
+| **4** | `customer_gender` | `hc_application_train.CODE_GENDER` | `VARCHAR` | Biological/declared gender of the applicant. | `'Male'`, `'Female'`, `'not available'` |
 | **5** | `total_income` | `hc_application_train.AMT_INCOME_TOTAL` | `DECIMAL(18,2)` | Total annual/declared income of the applicant. | `202500.00`, `135000.00` |
 | **6** | `credit_amount` | `hc_application_train.AMT_CREDIT` | `DECIMAL(18,2)` | Total principal credit amount approved/requested for the current loan. | `406597.50`, `1293502.50` |
 | **7** | `loan_annuity` | `hc_application_train.AMT_ANNUITY` | `DECIMAL(18,2)` | Scheduled periodic loan installment payment amount. | `24700.50`, `35698.50` |
