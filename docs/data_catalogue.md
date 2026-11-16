@@ -1,4 +1,4 @@
-# Gold Layer Data Catalogue: `gold.vw_customer_credit_profile`
+# Data Catalogue: `gold.vw_customer_credit_profile`
 
 ## 1. Architectural Overview & Metadata
 
