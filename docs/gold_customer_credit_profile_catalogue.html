@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gold Layer Data Catalogue — gold.vw_customer_credit_profile</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #5b6475;
+      --line: #dce2ea;
+      --soft: #f4f7fb;
+      --blue: #174ea6;
+      --blue-soft: #eaf1fc;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f5f7fa;
+      color: var(--ink);
+      font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    main {
+      width: min(1500px, calc(100% - 40px));
+      margin: 36px auto;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: 0 8px 28px rgba(24, 39, 75, .07);
+      overflow: hidden;
+    }
+    header {
+      padding: 34px 38px 28px;
+      background: linear-gradient(120deg, #102e59, #1d579c);
+      color: white;
+    }
+    h1 { margin: 0 0 8px; font-size: clamp(25px, 3vw, 36px); line-height: 1.2; }
+    header p { margin: 0; color: #e3edff; font-size: 15px; }
+    .content { padding: 30px 38px 42px; }
+    h2 {
+      margin: 34px 0 14px;
+      padding-bottom: 9px;
+      border-bottom: 2px solid var(--line);
+      font-size: 22px;
+      line-height: 1.3;
+    }
+    h2:first-child { margin-top: 0; }
+    h3 { margin: 25px 0 12px; color: #233b60; font-size: 17px; }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 12px 0 25px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      font-size: 13.5px;
+    }
+    th, td {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    thead th {
+      background: var(--blue-soft);
+      color: #173b70;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    tbody tr:nth-child(even) { background: #fafbfd; }
+    tbody tr:hover { background: #f0f5fc; }
+    td:first-child { text-align: center; white-space: nowrap; font-weight: 600; }
+    code {
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #eef1f5;
+      color: #25334a;
+      font: 12.5px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+    .metadata td:first-child { width: 22%; text-align: left; }
+    .metadata td:nth-child(2) { width: 78%; }
+    footer {
+      padding: 18px 38px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      background: #fafbfd;
+      font-size: 12px;
+    }
+    @media (max-width: 700px) {
+      main { width: 100%; margin: 0; border: 0; border-radius: 0; }
+      header, .content, footer { padding-left: 18px; padding-right: 18px; }
+      table { min-width: 850px; }
+      .metadata table { min-width: 600px; }
+    }
+    @media print {
+      body { background: white; }
+      main { width: 100%; margin: 0; border: 0; box-shadow: none; }
+      header { background: #173b70 !important; print-color-adjust: exact; }
+      .table-wrap { overflow: visible; }
+      table { font-size: 10pt; }
+      tr { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Gold Layer Data Catalogue</h1>
+    <p><code>gold.vw_customer_credit_profile</code></p>
+  </header>
+
+  <div class="content">
+    <h2>1. Architectural Overview &amp; Metadata</h2>
+    <div class="table-wrap">
+      <table class="metadata">
+        <thead><tr><th>Property</th><th>Specification</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Database Object</strong></td><td><code>gold.vw_customer_credit_profile</code></td></tr>
+          <tr><td><strong>Object Type</strong></td><td>Virtual Database View (Denormalized Analytical Base Table / Customer 360 Feature Store)</td></tr>
+          <tr><td><strong>Data Grain</strong></td><td>One unique row per loan applicant (<code>customer_id</code>), totaling <strong>307,511</strong> distinct records</td></tr>
+          <tr><td><strong>Primary Purpose</strong></td><td>Consolidates core demographics, declared income, external bureau debt, revolving credit card usage, POS/cash loan balances, and historical installment discipline into a single flat feature matrix</td></tr>
+          <tr><td><strong>Null Handling Policy</strong></td><td>All aggregated historical metrics use <code>ISNULL(..., 0)</code> so thin-file borrowers default cleanly to 0 rather than NULL</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>2. Column-by-Column Data Dictionary</h2>
+
+    <h3>A. Customer Identifiers &amp; Core Demographics</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Column Name</th><th>Source Table &amp; Field</th><th>Data Type</th><th>Business Definition</th><th>Example Values</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>customer_id</code></td><td><code>hc_application_train.SK_ID_CURR</code></td><td>INT</td><td>Unique primary identifier assigned to each loan applicant.</td><td>100002, 100003, 456255</td></tr>
+        <tr><td>2</td><td><code>default_flag</code></td><td><code>hc_application_train.TARGET</code></td><td>INT</td><td>Target risk indicator: 1 = client experienced payment difficulties, 0 = loan repaid normally.</td><td>0, 1</td></tr>
+        <tr><td>3</td><td><code>contract_type</code></td><td><code>hc_application_train.NAME_CONTRACT_TYPE</code></td><td>VARCHAR</td><td>Category of the loan product requested by the applicant.</td><td>'Cash loans', 'Revolving loans'</td></tr>
+        <tr><td>4</td><td><code>customer_gender</code></td><td><code>hc_application_train.CODE_GENDER</code></td><td>VARCHAR</td><td>Biological/declared gender of the applicant.</td><td>'M', 'F', 'XNA'</td></tr>
+        <tr><td>5</td><td><code>total_income</code></td><td><code>hc_application_train.AMT_INCOME_TOTAL</code></td><td>DECIMAL(18,2)</td><td>Total annual/declared income of the applicant.</td><td>202500.00, 135000.00</td></tr>
+        <tr><td>6</td><td><code>credit_amount</code></td><td><code>hc_application_train.AMT_CREDIT</code></td><td>DECIMAL(18,2)</td><td>Total principal credit amount approved/requested for the current loan.</td><td>406597.50, 1293502.50</td></tr>
+        <tr><td>7</td><td><code>loan_annuity</code></td><td><code>hc_application_train.AMT_ANNUITY</code></td><td>DECIMAL(18,2)</td><td>Scheduled periodic loan installment payment amount.</td><td>24700.50, 35698.50</td></tr>
+        <tr><td>8</td><td><code>goods_price</code></td><td><code>hc_application_train.AMT_GOODS_PRICE</code></td><td>DECIMAL(18,2)</td><td>Retail price of the consumer goods financed by the loan (POS/consumer loans).</td><td>351000.00, 1129500.00</td></tr>
+        <tr><td>9</td><td><code>income_type</code></td><td><code>hc_application_train.NAME_INCOME_TYPE</code></td><td>VARCHAR</td><td>Primary employment or income classification of the borrower.</td><td>'Working', 'Commercial associate', 'Pensioner'</td></tr>
+        <tr><td>10</td><td><code>education_level</code></td><td><code>hc_application_train.NAME_EDUCATION_TYPE</code></td><td>VARCHAR</td><td>Highest formal academic qualification attained by the applicant.</td><td>'Secondary / secondary special', 'Higher education'</td></tr>
+        <tr><td>11</td><td><code>family_status</code></td><td><code>hc_application_train.NAME_FAMILY_STATUS</code></td><td>VARCHAR</td><td>Marital and household status of the client.</td><td>'Single / not married', 'Married', 'Widow'</td></tr>
+        <tr><td>12</td><td><code>housing_type</code></td><td><code>hc_application_train.NAME_HOUSING_TYPE</code></td><td>VARCHAR</td><td>Current residential living arrangement of the applicant.</td><td>'House / apartment', 'Rented apartment'</td></tr>
+        <tr><td>13</td><td><code>customer_age_years</code></td><td><code>hc_application_train.DAYS_BIRTH</code></td><td>DECIMAL(5,2)</td><td>Exact age of the applicant in years at application (ABS(DAYS_BIRTH / -365.25)).</td><td>25.90, 45.89, 61.05</td></tr>
+        <tr><td>14</td><td><code>employment_duration_days</code></td><td><code>hc_application_train.DAYS_EMPLOYED</code></td><td>INT</td><td>Days employed prior to application (negative = active tenure; 365243 = pensioner code).</td><td>-637, -1188, 365243</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>B. External Credit Bureau Scoring &amp; Summary Metrics</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Column Name</th><th>Source Table &amp; Field</th><th>Data Type</th><th>Business Definition</th><th>Example Values</th></tr></thead>
+      <tbody>
+        <tr><td>15</td><td><code>external_score1</code></td><td><code>hc_application_train.EXT_SOURCE_1</code></td><td>FLOAT</td><td>Normalized risk score from external credit data source 1 (0 to 1; higher = lower risk).</td><td>0.083037, 0.311267, NULL</td></tr>
+        <tr><td>16</td><td><code>external_score2</code></td><td><code>hc_application_train.EXT_SOURCE_2</code></td><td>FLOAT</td><td>Normalized risk score from external credit data source 2 (0 to 1).</td><td>0.262949, 0.622246, 0.713524</td></tr>
+        <tr><td>17</td><td><code>external_score3</code></td><td><code>hc_application_train.EXT_SOURCE_3</code></td><td>FLOAT</td><td>Normalized risk score from external credit data source 3 (0 to 1).</td><td>0.139376, 0.535276, NULL</td></tr>
+        <tr><td>18</td><td><code>total_bureau_loans</code></td><td><code>hc_bureau.SK_ID_BUREAU</code></td><td>INT</td><td>Total count of historical and current loans reported to external credit bureaus.</td><td>0, 4, 11</td></tr>
+        <tr><td>19</td><td><code>active_bureau_loans</code></td><td><code>hc_bureau.CREDIT_ACTIVE</code></td><td>INT</td><td>Number of currently open/active credit facilities held with external institutions.</td><td>0, 2, 5</td></tr>
+        <tr><td>20</td><td><code>total_bureau_credit_sum</code></td><td><code>hc_bureau.AMT_CREDIT_SUM</code></td><td>DECIMAL(18,2)</td><td>Cumulative credit limit/principal granted across all external bureau records.</td><td>0.00, 865055.56, 3825000.00</td></tr>
+        <tr><td>21</td><td><code>total_bureau_debt</code></td><td><code>hc_bureau.AMT_CREDIT_SUM_DEBT</code></td><td>DECIMAL(18,2)</td><td>Total current outstanding debt owed across all external credit bureau accounts.</td><td>0.00, 245781.00, 1120000.00</td></tr>
+        <tr><td>22</td><td><code>max_bureau_days_overdue</code></td><td><code>hc_bureau.CREDIT_DAY_OVERDUE</code></td><td>INT</td><td>Maximum days past due recorded on any external credit bureau account at application.</td><td>0, 15, 142</td></tr>
+        <tr><td>23</td><td><code>total_bureau_balance_records</code></td><td><code>hc_bureau_balance.MONTHS_BALANCE</code></td><td>INT</td><td>Total count of monthly historical status snapshots across all external bureau loans.</td><td>0, 48, 196</td></tr>
+        <tr><td>24</td><td><code>total_bureau_delinquent_months</code></td><td><code>hc_bureau_balance.STATUS</code></td><td>INT</td><td>Total historical months flagged as delinquent (1–30, 31–60, 61–90, 91–120, or 120+ DPD).</td><td>0, 2, 14</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>C. Internal Revolving Credit Card &amp; POS/Cash Histories</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Column Name</th><th>Source Table &amp; Field</th><th>Data Type</th><th>Business Definition</th><th>Example Values</th></tr></thead>
+      <tbody>
+        <tr><td>25</td><td><code>total_credit_card_records</code></td><td><code>hc_credit_card_balance.SK_ID_PREV</code></td><td>INT</td><td>Total number of monthly historical credit card balance snapshots with Home Credit.</td><td>0, 24, 96</td></tr>
+        <tr><td>26</td><td><code>average_card_balance</code></td><td><code>hc_credit_card_balance.AMT_BALANCE</code></td><td>DECIMAL(18,2)</td><td>Mean monthly revolving balance carried across the customer's Home Credit cards.</td><td>0.00, 45230.15, 189400.00</td></tr>
+        <tr><td>27</td><td><code>max_card_credit_limit</code></td><td><code>hc_credit_card_balance.AMT_CREDIT_LIMIT_ACTUAL</code></td><td>DECIMAL(18,2)</td><td>Highest credit card limit extended to the customer during their historical card tenure.</td><td>0.00, 90000.00, 450000.00</td></tr>
+        <tr><td>28</td><td><code>max_card_days_past_due</code></td><td><code>hc_credit_card_balance.SK_DPD</code></td><td>INT</td><td>Worst historical delinquency (maximum days past due) on any Home Credit card account.</td><td>0, 7, 65</td></tr>
+        <tr><td>29</td><td><code>total_pos_cash_records</code></td><td><code>hc_posh_cash_balance.SK_ID_PREV</code></td><td>INT</td><td>Total count of monthly balance snapshots across prior Point-of-Sale (POS) and cash loans.</td><td>0, 18, 72</td></tr>
+        <tr><td>30</td><td><code>average_installments_remaining</code></td><td><code>hc_posh_cash_balance.CNT_INSTALMENT_FUTURE</code></td><td>DECIMAL(10,2)</td><td>Average number of future installments remaining across historical POS/cash snapshots.</td><td>0.00, 6.50, 14.25</td></tr>
+        <tr><td>31</td><td><code>max_pos_cash_days_past_due</code></td><td><code>hc_posh_cash_balance.SK_DPD</code></td><td>INT</td><td>Worst historical delinquency (maximum days past due) recorded across prior POS/cash loans.</td><td>0, 12, 94</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>D. Prior Application Outcomes, Payment Discipline &amp; Audit Metadata</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Column Name</th><th>Source Table &amp; Field</th><th>Data Type</th><th>Business Definition</th><th>Example Values</th></tr></thead>
+      <tbody>
+        <tr><td>32</td><td><code>total_previous_applications</code></td><td><code>hc_previous_application.SK_ID_PREV</code></td><td>INT</td><td>Total count of prior loan applications submitted by the client to Home Credit.</td><td>0, 1, 6</td></tr>
+        <tr><td>33</td><td><code>approved_previous_applications</code></td><td><code>hc_previous_application.NAME_CONTRACT_STATUS</code></td><td>INT</td><td>Count of previous Home Credit loan applications that were approved.</td><td>0, 1, 4</td></tr>
+        <tr><td>34</td><td><code>refused_previous_applications</code></td><td><code>hc_previous_application.NAME_CONTRACT_STATUS</code></td><td>INT</td><td>Count of previous Home Credit loan applications that were rejected/refused.</td><td>0, 1, 3</td></tr>
+        <tr><td>35</td><td><code>average_previous_credit_amount</code></td><td><code>hc_previous_application.AMT_CREDIT</code></td><td>DECIMAL(18,2)</td><td>Average credit amount approved/requested across all prior Home Credit applications.</td><td>0.00, 179055.00, 675000.00</td></tr>
+        <tr><td>36</td><td><code>total_installments_paid</code></td><td><code>hc_instalments_payments.SK_ID_PREV</code></td><td>INT</td><td>Total count of individual historical loan installment payments recorded for the customer.</td><td>0, 19, 145</td></tr>
+        <tr><td>37</td><td><code>total_underpayment_amount</code></td><td><code>hc_instalments_payments.AMT_INSTALMENT - AMT_PAYMENT</code></td><td>DECIMAL(18,2)</td><td>Cumulative variance between scheduled and actual payments (positive = net underpayment).</td><td>0.00, 4500.00, -1250.50</td></tr>
+        <tr><td>38</td><td><code>maximum_payment_delay_days</code></td><td><code>hc_instalments_payments.DAYS_ENTRY_PAYMENT - DAYS_INSTALMENT</code></td><td>INT</td><td>Maximum days paid late after the scheduled due date (0 or negative = on-time/early).</td><td>0, 4, 38</td></tr>
+        <tr><td>39</td><td><code>gold_view_refresh_date</code></td><td>System Function (<code>GETDATE()</code>)</td><td>DATETIME</td><td>Execution timestamp recording when the Gold layer view was queried or materialized.</td><td>'2026-11-16 19:09:42.110'</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <footer>Gold Layer Data Catalogue · <code>gold.vw_customer_credit_profile</code></footer>
+</main>
+</body>
+</html>
