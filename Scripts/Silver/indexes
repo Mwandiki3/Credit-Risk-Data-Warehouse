@@ -1,0 +1,176 @@
+/*==============================================================================
+INDEX OPTIMIZATION SCRIPT
+
+PURPOSE
+-------
+Creates performance-oriented covering indexes to support analytical
+workloads against Home Credit Silver layer tables.
+
+OPTIMIZATION OBJECTIVES
+-----------------------
+- Accelerate joins on SK_ID_CURR and SK_ID_BUREAU.
+- Improve GROUP BY and aggregation performance.
+- Reduce table and heap scans.
+- Minimize logical reads during Gold layer view execution.
+- Improve query response time for credit risk reporting workloads.
+
+INDEXING STRATEGY
+-----------------
+- One standardized nonclustered index per source table.
+- Indexed on primary join and aggregation keys.
+- Includes frequently accessed analytical columns.
+- Eliminates duplicate indexing patterns.
+- Uses naming convention:
+
+      idx_<table_name>_<key_column>
+
+SUPPORTED OBJECTS
+-----------------
+- silver.hc_application_train
+- silver.hc_bureau
+- silver.hc_bureau_balance
+- silver.hc_credit_card_balance
+- silver.hc_posh_cash_balance
+- silver.hc_previous_application
+- silver.hc_instalments_payments
+
+EXPECTED BENEFITS
+-----------------
+- Reduced query execution time
+- Improved aggregation performance
+- Faster Gold layer refreshes
+- Better execution plan selection
+- Lower IO and CPU consumption
+
+==============================================================================*/
+
+
+/*===========================================================
+DROP EXISTING CUSTOM NONCLUSTERED INDEXES
+===========================================================*/
+
+DROP INDEX IF EXISTS idx_hc_application_train_sk_curr
+ON silver.hc_application_train;
+
+DROP INDEX IF EXISTS idx_hc_bureau_sk_curr_bureau
+ON silver.hc_bureau;
+
+DROP INDEX IF EXISTS IX_hc_bureau_curr
+ON silver.hc_bureau;
+
+DROP INDEX IF EXISTS idx_hc_bureau_balance_bureau_status
+ON silver.hc_bureau_balance;
+
+DROP INDEX IF EXISTS IX_hc_bureau_balance_bureau
+ON silver.hc_bureau_balance;
+
+DROP INDEX IF EXISTS idx_hc_credit_card_balance_sk_curr
+ON silver.hc_credit_card_balance;
+
+DROP INDEX IF EXISTS IX_hc_credit_card_balance_curr
+ON silver.hc_credit_card_balance;
+
+DROP INDEX IF EXISTS idx_hc_instalments_payments_sk_curr
+ON silver.hc_instalments_payments;
+
+DROP INDEX IF EXISTS IX_hc_instalments_payments_curr
+ON silver.hc_instalments_payments;
+
+DROP INDEX IF EXISTS idx_hc_posh_cash_balance_sk_curr
+ON silver.hc_posh_cash_balance;
+
+DROP INDEX IF EXISTS IX_hc_pos_cash_balance_curr
+ON silver.hc_posh_cash_balance;
+
+DROP INDEX IF EXISTS idx_hc_previous_application_sk_curr
+ON silver.hc_previous_application;
+
+DROP INDEX IF EXISTS IX_hc_previous_application_curr
+ON silver.hc_previous_application;
+GO
+
+
+/*===========================================================
+CREATE STANDARDIZED HIGH-PERFORMANCE INDEXES
+===========================================================*/
+
+/* Application Train */
+CREATE NONCLUSTERED INDEX idx_hc_application_train_sk_id_curr
+ON silver.hc_application_train (SK_ID_CURR);
+GO
+
+/* Bureau */
+CREATE NONCLUSTERED INDEX idx_hc_bureau_sk_id_curr
+ON silver.hc_bureau (SK_ID_CURR)
+INCLUDE
+(
+    SK_ID_BUREAU,
+    CREDIT_ACTIVE,
+    AMT_CREDIT_SUM,
+    AMT_CREDIT_SUM_DEBT,
+    CREDIT_DAY_OVERDUE
+);
+GO
+
+/* Bureau Balance */
+CREATE NONCLUSTERED INDEX idx_hc_bureau_balance_sk_id_bureau
+ON silver.hc_bureau_balance (SK_ID_BUREAU)
+INCLUDE
+(
+    STATUS
+);
+GO
+
+/* Credit Card Balance */
+CREATE NONCLUSTERED INDEX idx_hc_credit_card_balance_sk_id_curr
+ON silver.hc_credit_card_balance (SK_ID_CURR)
+INCLUDE
+(
+    SK_ID_PREV,
+    AMT_BALANCE,
+    AMT_CREDIT_LIMIT_ACTUAL,
+    SK_DPD
+);
+GO
+
+/* POS Cash Balance */
+CREATE NONCLUSTERED INDEX idx_hc_posh_cash_balance_sk_id_curr
+ON silver.hc_posh_cash_balance (SK_ID_CURR)
+INCLUDE
+(
+    SK_ID_PREV,
+    CNT_INSTALMENT_FUTURE,
+    SK_DPD
+);
+GO
+
+/* Previous Application */
+CREATE NONCLUSTERED INDEX idx_hc_previous_application_sk_id_curr
+ON silver.hc_previous_application (SK_ID_CURR)
+INCLUDE
+(
+    SK_ID_PREV,
+    NAME_CONTRACT_STATUS,
+    AMT_CREDIT
+);
+GO
+
+/* Installments Payments */
+CREATE NONCLUSTERED INDEX idx_hc_instalments_payments_sk_id_curr
+ON silver.hc_instalments_payments (SK_ID_CURR)
+INCLUDE
+(
+    AMT_INSTALMENT,
+    AMT_PAYMENT,
+    DAYS_ENTRY_PAYMENT,
+    DAYS_INSTALMENT
+);
+GO
+
+
+/*===========================================================
+REFRESH OPTIMIZER STATISTICS
+===========================================================*/
+
+EXEC sp_updatestats;
+GO
