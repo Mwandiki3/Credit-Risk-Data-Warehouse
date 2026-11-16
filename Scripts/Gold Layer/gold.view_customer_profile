@@ -1,1 +1,406 @@
+/*==============================================================================
+VIEW NAME : gold.vw_customer_credit_profile
 
+PURPOSE
+-------
+Creates a consolidated customer-level credit risk profile by integrating
+application, bureau, bureau balance, credit card, POS cash, previous
+application, and installment payment data into a single analytical dataset.
+
+BUSINESS VALUE
+--------------
+Provides a unified customer credit portfolio view that supports:
+
+- Credit risk assessment
+- Default prediction modelling
+- Portfolio analysis
+- Customer segmentation
+- Delinquency monitoring
+- Lending decision support
+
+LOGIC OVERVIEW
+--------------
+1. Aggregates bureau balance records at loan level (SK_ID_BUREAU).
+2. Summarizes bureau exposure and repayment behavior at customer level.
+3. Calculates credit card utilization and delinquency indicators.
+4. Summarizes POS cash obligations and payment performance.
+5. Aggregates previous loan application history and outcomes.
+6. Computes installment payment behaviour and underpayment indicators.
+7. Joins all aggregated metrics to the application dataset using SK_ID_CURR.
+8. Exposes a single customer-centric gold layer for reporting and analytics.
+
+GRAIN
+-----
+One record per customer (SK_ID_CURR)
+
+REFRESH
+-------
+Updated automatically during Gold Layer refresh processes.
+
+===============================================================================*/
+CREATE OR ALTER VIEW gold.vw_customer_credit_profile
+AS
+
+WITH bureau_balance_agg AS
+(
+    ------------------------------------------------------------------
+    -- Aggregate bureau balance at loan level
+    ------------------------------------------------------------------
+    SELECT
+        bb.SK_ID_BUREAU,
+
+        COUNT_BIG(*) AS total_bureau_balance_records,
+
+        SUM(
+            CASE
+                WHEN bb.STATUS IN
+                (
+                    'Late (1-30 Days DPD)',
+                    'Late (31-60 Days DPD)',
+                    'Late (61-90 Days DPD)',
+                    'Late (91-120 Days DPD)',
+                    'Severe Default (120+ Days / Write-Off)'
+                )
+                THEN 1
+                ELSE 0
+            END
+        ) AS total_bureau_delinquent_months
+
+    FROM silver.hc_bureau_balance bb
+
+    GROUP BY
+        bb.SK_ID_BUREAU
+),
+
+bureau_summary AS
+(
+    ------------------------------------------------------------------
+    -- Bureau metrics aggregated directly from bureau
+    ------------------------------------------------------------------
+    SELECT
+        b.SK_ID_CURR,
+
+        COUNT_BIG(*) AS total_bureau_loans,
+
+        SUM
+        (
+            CASE
+                WHEN b.CREDIT_ACTIVE = 'Active'
+                THEN 1
+                ELSE 0
+            END
+        ) AS active_bureau_loans,
+
+        SUM(ISNULL(b.AMT_CREDIT_SUM,0))
+            AS total_bureau_credit_sum,
+
+        SUM(ISNULL(b.AMT_CREDIT_SUM_DEBT,0))
+            AS total_bureau_debt,
+
+        MAX(ISNULL(b.CREDIT_DAY_OVERDUE,0))
+            AS max_bureau_days_overdue
+
+    FROM silver.hc_bureau b
+
+    WHERE b.SK_ID_CURR IS NOT NULL
+
+    GROUP BY
+        b.SK_ID_CURR
+),
+
+bureau_balance_summary AS
+(
+    ------------------------------------------------------------------
+    -- Bureau balance metrics aggregated separately
+    ------------------------------------------------------------------
+    SELECT
+        b.SK_ID_CURR,
+
+        SUM(ISNULL(bba.total_bureau_balance_records,0))
+            AS total_bureau_balance_records,
+
+        SUM(ISNULL(bba.total_bureau_delinquent_months,0))
+            AS total_bureau_delinquent_months
+
+    FROM silver.hc_bureau b
+
+    INNER JOIN bureau_balance_agg bba
+        ON b.SK_ID_BUREAU = bba.SK_ID_BUREAU
+
+    WHERE b.SK_ID_CURR IS NOT NULL
+
+    GROUP BY
+        b.SK_ID_CURR
+),
+
+credit_card_summary AS
+(
+    ------------------------------------------------------------------
+    -- Credit card metrics
+    ------------------------------------------------------------------
+    SELECT
+        c.SK_ID_CURR,
+
+        COUNT(DISTINCT c.SK_ID_PREV)
+            AS total_credit_card_records,
+
+        AVG(ISNULL(c.AMT_BALANCE,0))
+            AS average_card_balance,
+
+        MAX(ISNULL(c.AMT_CREDIT_LIMIT_ACTUAL,0))
+            AS max_card_credit_limit,
+
+        MAX(ISNULL(c.SK_DPD,0))
+            AS max_card_days_past_due
+
+    FROM silver.hc_credit_card_balance c
+
+    WHERE c.SK_ID_CURR IS NOT NULL
+
+    GROUP BY
+        c.SK_ID_CURR
+),
+
+pos_cash_summary AS
+(
+    ------------------------------------------------------------------
+    -- POS cash metrics
+    ------------------------------------------------------------------
+    SELECT
+        p.SK_ID_CURR,
+
+        COUNT(DISTINCT p.SK_ID_PREV)
+            AS total_pos_cash_records,
+
+        AVG(ISNULL(p.CNT_INSTALMENT_FUTURE,0))
+            AS average_installments_remaining,
+
+        MAX(ISNULL(p.SK_DPD,0))
+            AS max_pos_cash_days_past_due
+
+    FROM silver.hc_posh_cash_balance p
+
+    WHERE p.SK_ID_CURR IS NOT NULL
+
+    GROUP BY
+        p.SK_ID_CURR
+),
+
+prev_app_summary AS
+(
+    ------------------------------------------------------------------
+    -- Previous applications
+    ------------------------------------------------------------------
+    SELECT
+        pa.SK_ID_CURR,
+
+        COUNT(*)
+            AS total_previous_applications,
+
+        SUM
+        (
+            CASE
+                WHEN pa.NAME_CONTRACT_STATUS = 'Approved'
+                THEN 1
+                ELSE 0
+            END
+        ) AS approved_previous_applications,
+
+        SUM
+        (
+            CASE
+                WHEN pa.NAME_CONTRACT_STATUS = 'Refused'
+                THEN 1
+                ELSE 0
+            END
+        ) AS refused_previous_applications,
+
+        AVG(ISNULL(pa.AMT_CREDIT,0))
+            AS average_previous_credit_amount
+
+    FROM silver.hc_previous_application pa
+
+    WHERE pa.SK_ID_CURR IS NOT NULL
+
+    GROUP BY
+        pa.SK_ID_CURR
+),
+
+installment_summary AS
+(
+    ------------------------------------------------------------------
+    -- Installment payment behaviour
+    ------------------------------------------------------------------
+    SELECT
+        ip.SK_ID_CURR,
+
+        COUNT_BIG(*) AS total_installments_paid,
+
+        SUM
+        (
+            ISNULL(ip.AMT_INSTALMENT,0)
+            -
+            ISNULL(ip.AMT_PAYMENT,0)
+        ) AS total_underpayment_amount,
+
+        MAX
+        (
+            ISNULL(ip.DAYS_ENTRY_PAYMENT,0)
+            -
+            ISNULL(ip.DAYS_INSTALMENT,0)
+        ) AS maximum_payment_delay_days
+
+    FROM silver.hc_instalments_payments ip
+
+    WHERE ip.SK_ID_CURR IS NOT NULL
+
+    GROUP BY
+        ip.SK_ID_CURR
+)
+
+SELECT
+
+    ------------------------------------------------------------------
+    -- Customer demographics
+    ------------------------------------------------------------------
+
+    app.SK_ID_CURR AS customer_id,
+
+    app.TARGET AS default_flag,
+
+    app.NAME_CONTRACT_TYPE AS contract_type,
+
+    app.CODE_GENDER AS customer_gender,
+
+    app.AMT_INCOME_TOTAL AS total_income,
+
+    app.AMT_CREDIT AS credit_amount,
+
+    app.AMT_ANNUITY AS loan_annuity,
+
+    app.AMT_GOODS_PRICE AS goods_price,
+
+    app.NAME_INCOME_TYPE AS income_type,
+
+    app.NAME_EDUCATION_TYPE AS education_level,
+
+    app.NAME_FAMILY_STATUS AS family_status,
+
+    app.NAME_HOUSING_TYPE AS housing_type,
+
+    ABS(app.DAYS_BIRTH / 365.25)
+        AS customer_age_years,
+
+    app.DAYS_EMPLOYED
+        AS employment_duration_days,
+
+    app.EXT_SOURCE_1 AS external_score1,
+
+    app.EXT_SOURCE_2 AS external_score2,
+
+    app.EXT_SOURCE_3 AS external_score3,
+
+    ------------------------------------------------------------------
+    -- Bureau metrics
+    ------------------------------------------------------------------
+
+    ISNULL(bs.total_bureau_loans,0)
+        AS total_bureau_loans,
+
+    ISNULL(bs.active_bureau_loans,0)
+        AS active_bureau_loans,
+
+    ISNULL(bs.total_bureau_credit_sum,0)
+        AS total_bureau_credit_sum,
+
+    ISNULL(bs.total_bureau_debt,0)
+        AS total_bureau_debt,
+
+    ISNULL(bs.max_bureau_days_overdue,0)
+        AS max_bureau_days_overdue,
+
+    ISNULL(bbs.total_bureau_balance_records,0)
+        AS total_bureau_balance_records,
+
+    ISNULL(bbs.total_bureau_delinquent_months,0)
+        AS total_bureau_delinquent_months,
+
+    ------------------------------------------------------------------
+    -- Credit card metrics
+    ------------------------------------------------------------------
+
+    ISNULL(cc.total_credit_card_records,0)
+        AS total_credit_card_records,
+
+    ISNULL(cc.average_card_balance,0)
+        AS average_card_balance,
+
+    ISNULL(cc.max_card_credit_limit,0)
+        AS max_card_credit_limit,
+
+    ISNULL(cc.max_card_days_past_due,0)
+        AS max_card_days_past_due,
+
+    ------------------------------------------------------------------
+    -- POS cash metrics
+    ------------------------------------------------------------------
+
+    ISNULL(pos.total_pos_cash_records,0)
+        AS total_pos_cash_records,
+
+    ISNULL(pos.average_installments_remaining,0)
+        AS average_installments_remaining,
+
+    ISNULL(pos.max_pos_cash_days_past_due,0)
+        AS max_pos_cash_days_past_due,
+
+    ------------------------------------------------------------------
+    -- Previous application metrics
+    ------------------------------------------------------------------
+
+    ISNULL(pa.total_previous_applications,0)
+        AS total_previous_applications,
+
+    ISNULL(pa.approved_previous_applications,0)
+        AS approved_previous_applications,
+
+    ISNULL(pa.refused_previous_applications,0)
+        AS refused_previous_applications,
+
+    ISNULL(pa.average_previous_credit_amount,0)
+        AS average_previous_credit_amount,
+
+    ------------------------------------------------------------------
+    -- Installment metrics
+    ------------------------------------------------------------------
+
+    ISNULL(ins.total_installments_paid,0)
+        AS total_installments_paid,
+
+    ISNULL(ins.total_underpayment_amount,0)
+        AS total_underpayment_amount,
+
+    ISNULL(ins.maximum_payment_delay_days,0)
+        AS maximum_payment_delay_days,
+
+    GETDATE() AS gold_view_refresh_date
+
+FROM silver.hc_application_train app
+
+LEFT JOIN bureau_summary bs
+    ON app.SK_ID_CURR = bs.SK_ID_CURR
+
+LEFT JOIN bureau_balance_summary bbs
+    ON app.SK_ID_CURR = bbs.SK_ID_CURR
+
+LEFT JOIN credit_card_summary cc
+    ON app.SK_ID_CURR = cc.SK_ID_CURR
+
+LEFT JOIN pos_cash_summary pos
+    ON app.SK_ID_CURR = pos.SK_ID_CURR
+
+LEFT JOIN prev_app_summary pa
+    ON app.SK_ID_CURR = pa.SK_ID_CURR
+
+LEFT JOIN installment_summary ins
+    ON app.SK_ID_CURR = ins.SK_ID_CURR;
