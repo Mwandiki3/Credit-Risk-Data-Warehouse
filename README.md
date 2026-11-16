@@ -1,30 +1,127 @@
-# Credit-Risk-Data-Warehouse
-Welcome to the Credit Risk Data Warehouse Project! Whether you are a data scientist building predictive risk models, a data analyst exploring default trends, or a business stakeholder reviewing credit exposure, this repository provides a clean, robust, and scalable data infrastructure designed to turn raw financial data into actionable insights.
+# Credit Risk Data Warehouse
+An end-to-end SQL Server data engineering and quantitative risk analytics project built on the **Home Credit Default Risk** corpus. This repository transforms millions of raw, multi-relational loan, bureau, and payment records into a unified, analytics-ready **Customer 360 Analytical Base Table (ABT)** for business intelligence and credit risk modeling.
 
-🚀 Project Overview
-The Credit Risk Data Warehouse Project is an end-to-end data engineering solution built on Microsoft SQL Server. It follows industry-standard Medallion Architecture (Bronze, Silver, Gold layers) and Star Schema dimensional modeling principles to process, clean, and structure the complex Home Credit Default Risk dataset.
+## Project Overview
 
-🏛️ Medallion Architecture Breakdown
-This data warehouse is engineered using a multi-layer Medallion architecture to ensure data traceability, cleanliness, and high analytical performance:
+Financial risk analysis requires consolidating fragmented behavioral records into a single, reliable view of borrower creditworthiness. Built using **Microsoft SQL Server (T-SQL)** and the **Medallion Architecture**, this warehouse ingests seven relational source tables (spanning up to 24 million rows) and aggregates them into a strict **1-to-1 customer-level flat view** (`gold.vw_customer_credit_profile`) covering **307,511** unique applicants.
 
-1. Bronze Layer (Raw Staging)
-What it does: Acts as a 100% un-transformed, literal raw mirror of the source CSV files.
+### Core Objectives
+* **Automated Ingestion:** Build repeatable, fault-tolerant `BULK INSERT` pipelines with execution logging and `TRY...CATCH` error handling.
+* **Data Quality & Key Integrity:** Audit relational keys across tables, resolve structural key offsets, and eliminate one-to-many row duplication.
+* **Query Optimization:** Provision strategic Non-Clustered Covering Indexes on physical Silver tables to accelerate multi-million-row aggregations.
+* **Risk Analytics:** Deliver a production-ready flat feature matrix and a suite of T-SQL credit risk queries (DTI, DSIR, DPD stratification, and external score banding).
 
-Key Practices: Every single column across all staging tables is uniformly typed as VARCHAR(255) to completely prevent type-conversion errors during initial ingestion and preserve missing values as NULLs.
+---
 
-Automation: Loaded using optimized bulk insert scripts and orchestrated via automated T-SQL stored procedures (bronze.load_bronze_layer) with built-in error handling (TRY...CATCH) and execution duration tracking.
+## System Architecture
 
-2. Silver Layer (Cleansing & Integration)
-What it does: Transforms raw staging data into a clean, structured, and trustworthy operational format.
+```text
++-----------------------------------------------------------------------------------+
+|                            RAW SOURCE DATA (CSV FILES)                            |
+|   application_train | bureau | bureau_balance | previous_application |            |
+|   credit_card_balance | pos_cash_balance | installments_payments                  |
++-----------------------------------------+-----------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                        BRONZE LAYER (Raw Landing Zone)                            |
+|  * Stored Procedure: bronze.load_bronze_layer                                     |
+|  * Bulk-loaded as VARCHAR(255) to preserve raw state and prevent load failures    |
++-----------------------------------------+-----------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                   SILVER LAYER (Cleansed, Typed & Indexed)                        |
+|  * Enforces strict SQL data types (INT, DECIMAL, FLOAT, VARCHAR)                  |
+|  * Standardizes categorical values & handles sentinel codes (e.g., 365243)        |
+|  * Non-Clustered Covering Indexes applied on SK_ID_CURR & SK_ID_BUREAU            |
++-----------------------------------------+-----------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                GOLD LAYER (Denormalized Customer 360 Flat Table)                  |
+|  * View: gold.vw_customer_credit_profile                                          |
+|  * Wide Analytical Base Table (ABT) / Feature Store (1 Row = 1 Customer)          |
+|  * Zero runtime JOIN overhead for Power BI, SQL Analytics & ML Pipelines          |
++-----------------------------------------------------------------------------------+
+Credit-Risk-Data-Warehouse/
+├── datasets/                     # Source Home Credit CSV files (excluded from git via .gitignore)
+├── docs/
+│   ├── data_architecture.png     # High-level Medallion Architecture diagram
+│   ├── data_flow_diagram.png     # End-to-end ETL data movement and transformation flow
+│   ├── er_diagram.png            # Source-to-Silver relational Entity-Relationship diagram
+│   └── data_catalogue.md         # Complete 39-column Gold layer data dictionary & examples
+├── scripts/
+│   ├── bronze/
+│   │   ├── ddl_bronze.sql        # Raw staging table definitions (VARCHAR(255))
+│   │   └── proc_load_bronze.sql  # Automated BULK INSERT stored procedure with logging
+│   ├── silver/
+│   │   ├── ddl_silver.sql        # Cleansed, typed table schemas
+│   │   ├── proc_load_silver.sql  # Data transformation, cleansing & standardization logic
+│   │   └── idx_silver.sql        # Non-Clustered Covering Indexes for join/group optimization
+│   └── gold/
+│       └── view_gold_abt.sql     # Multi-stage CTE view: gold.vw_customer_credit_profile
+└── README.md                     # Project documentation
 
-Key Practices: Casts data fields into their correct native SQL data types (e.g., integers, decimals, dates), strips out duplicate records, standardizes text formatting, and handles missing or corrupted values intelligently. It establishes structural consistency across related datasets (such as application logs, bureau records, and installment histories).
 
-3. Gold Layer (Dimensional Modeling & Analytics)
-What it does: Delivers business-ready, highly aggregated data optimized for reporting, visualization, and predictive machine learning models.
+## Data Engineering Challenges & Solutions
 
-Key Practices: Implements a rigorous Star Schema architecture featuring optimized Fact Tables (capturing quantitative metrics like loan amounts, payment defaults, and credit limits) and Dimension Tables (descriptive attributes of clients, contracts, and geographic data). This layer provides lightning-fast query performance for data scientists, analysts, and business stakeholders.
-📜 License
-This project is open-source and available under the MIT License. You are free to use, modify, and build upon this project for educational and professional purposes.
+### 1. Resolving Multi-Level Bureau Bridging & Key Offsets
+* **Challenge:** Unlike internal product tables (`credit_card_balance`, `pos_cash_balance`, `installments_payments`) which join directly to `application_train` via `SK_ID_CURR`, external credit history is split across `hc_bureau` and `hc_bureau_balance` (linked via `SK_ID_BUREAU`). Empirical completeness checks (`INTERSECT` / `EXCEPT`) also revealed source-level key alignment anomalies, and naive joins caused row counts to double from 307,511 to 615,022.
+* **Solution:** Implemented a two-stage CTE aggregation pipeline:
+  1. Pre-aggregated monthly payment statuses in `hc_bureau_balance` up to the individual loan level (`SK_ID_BUREAU`).
+  2. Bridged loan-level metrics into `hc_bureau` and grouped strictly by `SK_ID_CURR` before left-joining to the master application table, enforcing an exact 1-to-1 customer grain (307,511 rows).
 
-👨‍💻 About the Author
-Evans Mwandiki (GitHub: Mwandiki3) is a data practitioner and quantitative enthusiast passionate about database architecture, data warehousing, and building scalable data pipelines. With a strong background in analytical problem-solving, Evans focuses on designing efficient SQL-driven data workflows that bridge raw data systems with practical business intelligence and risk modeling.
+### 2. Performance Tuning on Multi-Million-Row Tables
+* **Challenge:** Grouping and joining tables containing up to 24 million rows created heavy table-scan bottlenecks when querying the Gold view.
+* **Solution:** Created Non-Clustered Covering Indexes (`INCLUDE` clauses) on the physical Silver tables (`SK_ID_CURR` and `SK_ID_BUREAU`), enabling SQL Server's query optimizer to execute fast index seeks.
+
+---
+
+## Gold Layer Feature Store
+
+Rather than building a normalized Star Schema (separate Fact and Dimension tables), the Gold layer implements a Denormalized Customer 360 Analytical Base Table (ABT) via `gold.vw_customer_credit_profile`.
+
+| Feature Domain | Key Metrics Engineered | Business Value |
+| :--- | :--- | :--- |
+| **Demographics & Application** | `customer_age_years`, `total_income`, `credit_amount`, `loan_annuity`, `education_level`, `housing_type` | Establishes baseline borrower capacity and contract structure |
+| **External Credit Bureau** | `external_score1–3`, `total_bureau_loans`, `active_bureau_loans`, `total_bureau_debt`, `total_bureau_delinquent_months` | Captures external leverage and third-party repayment history |
+| **Revolving & POS Balances** | `average_card_balance`, `max_card_credit_limit`, `max_card_days_past_due`, `average_installments_remaining` | Measures revolving credit utilization and short-term liquidity stress |
+| **Payment & App Discipline** | `approved_previous_applications`, `refused_previous_applications`, `total_underpayment_amount`, `maximum_payment_delay_days` | Quantifies historical repayment discipline and delinquency severity |
+
+> **Architecture & Schema Docs:** Explore the `docs/` directory for the Data Architecture diagram, Data Flow Diagram (DFD), Entity-Relationship (ER) diagram, and full 39-column Gold Layer Data Catalogue.
+
+---
+
+## Getting Started
+
+### Prerequisites
+* Microsoft SQL Server (2019 or later recommended)
+* SQL Server Management Studio (SSMS) or Azure Data Studio
+* Raw CSV files from the Home Credit Default Risk dataset
+
+### Execution Order
+1. **Initialize Schemas & Bronze Tables:** Run `scripts/bronze/ddl_bronze.sql` and execute `EXEC bronze.load_bronze_layer;`.
+2. **Build & Populate Silver Layer:** Run `scripts/silver/ddl_silver.sql` followed by `scripts/silver/proc_load_silver.sql`.
+3. **Apply Performance Indexes:** Run `scripts/silver/idx_silver.sql` on the physical Silver tables.
+4. **Deploy Gold Flat View:** Run `scripts/gold/view_gold_abt.sql` to create `gold.vw_customer_credit_profile`.
+
+---
+
+## Roadmap
+
+* [x] **Phase 1: Data Warehouse Engineering (Current Repository)** — Bronze ingestion, Silver cleansing/indexing, and Gold Customer 360 ABT view.
+* [ ] **Phase 2: Advanced Credit Risk Analytics (Upcoming Separate Project)** — Quantitative portfolio risk analysis (DTI, DSIR, DPD stratification), statistical hypothesis testing, and predictive default modeling built directly on top of `gold.vw_customer_credit_profile`.
+
+---
+
+## Author & License
+
+**Evans Mwandiki**  
+*B.Sc. Actuarial Science | Aspiring Data Engineer & Credit Risk Analyst*
+
+With an academic foundation in Actuarial Science, I am building practical expertise in SQL development, data engineering, and quantitative risk modeling. This project reflects my hands-on progression in designing automated ETL pipelines, solving complex relational data anomalies, and transforming raw financial records into an analytics-ready data foundation.
+
+* **GitHub:** [@Mwandiki3](https://github.com/Mwandiki3)
+
+This project is licensed under the **MIT License** — feel free to use, modify, and distribute it for educational or portfolio purposes.
