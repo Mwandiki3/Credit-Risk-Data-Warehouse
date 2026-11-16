@@ -1,8 +1,70 @@
--- This stored procedure loads the silver layer tables.
--- It reads raw data from the bronze layer.
--- It enforces type safety.
--- It standardizes categorical attributes.
---To execute it use this code: EXEC silver.load_silver_layer
+/*==============================================================================
+PROCEDURE NAME : silver.load_silver_layer
+
+PURPOSE
+-------
+Loads and transforms Home Credit source data from the Bronze layer into the
+Silver layer by applying data cleansing, standardization, validation,
+and datatype enforcement rules.
+
+BUSINESS OBJECTIVE
+------------------
+Creates a trusted and analytics-ready Silver layer that serves as the
+foundation for downstream reporting, dashboarding, feature engineering,
+and credit risk analytics.
+
+PROCESS OVERVIEW
+----------------
+1. Truncates existing Silver layer tables.
+2. Extracts raw records from Bronze layer datasets.
+3. Standardizes categorical attributes and business labels.
+4. Converts source text values into appropriate SQL data types.
+5. Handles blank and invalid values using NULLIF and TRY_CAST.
+6. Applies business-friendly transformations where applicable.
+7. Loads cleansed records into Silver layer tables.
+8. Captures execution timing and load progress information.
+9. Implements centralized error handling and diagnostic logging.
+
+SOURCE LAYER
+------------
+bronze.hc_application_train
+bronze.hc_bureau
+bronze.hc_bureau_balance
+bronze.hc_credit_card_balance
+bronze.hc_instalments_payments
+bronze.hc_posh_cash_balance
+bronze.hc_previous_application
+
+TARGET LAYER
+------------
+silver.hc_application_train
+silver.hc_bureau
+silver.hc_bureau_balance
+silver.hc_credit_card_balance
+silver.hc_instalments_payments
+silver.hc_posh_cash_balance
+silver.hc_previous_application
+
+DATA QUALITY CONTROLS
+---------------------
+- Removal of leading and trailing whitespace
+- Standardized handling of empty strings
+- Safe datatype conversion using TRY_CAST
+- Controlled categorical value mapping
+- Null value normalization
+- Load auditing through execution logging
+
+GRAIN
+-----
+Preserves source system grain while ensuring data consistency and
+analytical readiness.
+
+DEPENDENCIES
+------------
+This procedure must complete successfully before Gold layer aggregations,
+analytical views, and reporting workloads are executed.
+
+===============================================================================*/
 CREATE OR ALTER PROCEDURE silver.load_silver_layer AS
 BEGIN
 BEGIN TRY
@@ -13,6 +75,8 @@ PRINT'Loading Silver layer';
 PRINT'=====================================================================';
 
 SET @start_time=GETDATE();
+PRINT'>>Truncating application train table';
+TRUNCATE TABLE silver.hc_application_train;
 PRINT'>>===============================================================================';
 PRINT'>>Loading data into silver layer application train table';
 PRINT'>>>==============================================================================';
@@ -178,19 +242,21 @@ PRINT'>>Load Duration' +CAST(DATEDIFF(second,@start_time,@end_time) AS NVARCHAR)
 PRINT 'Loaded silver.hc_application_train successfully.';
 
 SET @start_time=GETDATE();
+TRUNCATE TABLE silver.hc_bureau;
+PRINT'>>Truncating silver.hc_bureau_table';
 PRINT'>>===============================================================================';
 PRINT'>>Loading data into silver layer bureau table';
 PRINT'>>>==============================================================================';
 
 INSERT INTO silver.hc_bureau (
-    SK_ID_BUREAU, SK_ID_CURR, CREDIT_ACTIVE, CREDIT_CURRENCY, DAYS_CREDIT, 
+    SK_ID_CURR, SK_ID_BUREAU, CREDIT_ACTIVE, CREDIT_CURRENCY, DAYS_CREDIT, 
     CREDIT_DAY_OVERDUE, DAYS_CREDIT_ENDDATE, DAYS_ENDDATE_FACT, AMT_CREDIT_MAX_OVERDUE, 
     CNT_CREDIT_PROLONG, AMT_CREDIT_SUM, AMT_CREDIT_SUM_DEBT, AMT_CREDIT_SUM_LIMIT, 
     AMT_CREDIT_SUM_OVERDUE, CREDIT_TYPE, DAYS_CREDIT_UPDATE, AMT_ANNUITY
 )
 SELECT 
-    TRY_CAST(NULLIF(TRIM(SK_ID_BUREAU), '') AS INT),
     TRY_CAST(NULLIF(TRIM(SK_ID_CURR), '') AS INT),
+    TRY_CAST(NULLIF(TRIM(SK_ID_BUREAU), '') AS INT),
     NULLIF(TRIM(CREDIT_ACTIVE), ''),
     NULLIF(TRIM(CREDIT_CURRENCY), ''),
     TRY_CAST(NULLIF(TRIM(DAYS_CREDIT), '') AS INT),
@@ -212,6 +278,8 @@ PRINT'>>Load Duration' +CAST(DATEDIFF(second,@start_time,@end_time) AS NVARCHAR)
 PRINT 'Loaded silver.hc_bureau successfully.';
 
 SET @start_time=GETDATE();
+TRUNCATE TABLE silver.hc_bureau_balance;
+PRINT'>>Truncating bureau_balance_table';
 PRINT'>>===============================================================================';
 PRINT'>>Loading data into silver layer bureau balance table';
 PRINT'>>>==============================================================================';
@@ -238,6 +306,8 @@ PRINT 'Loaded silver.hc_bureau_balance successfully.';
 
 
 SET @start_time=GETDATE();
+TRUNCATE TABLE silver.hc_credit_card_balance;
+PRINT'>>Truncating credit card balance table';
 PRINT'>>===============================================================================';
 PRINT'>>Loading data into silver layer credit card balance table';
 PRINT'>>>==============================================================================';
@@ -280,6 +350,8 @@ PRINT'>>Load Duration' +CAST(DATEDIFF(second,@start_time,@end_time) AS NVARCHAR)
 PRINT 'Loaded silver.hc_credit_bureau_balance successfully.';
 
 SET @start_time=GETDATE();
+TRUNCATE TABLE silver.hc_instalments_payments;
+PRINT'>>Truncating intalments payments table';
 PRINT'>>===============================================================================';
 PRINT'>>Loading data into silver layer instalments payments table';
 PRINT'>>>==============================================================================';
@@ -303,6 +375,8 @@ PRINT'>>Load Duration' +CAST(DATEDIFF(second,@start_time,@end_time) AS NVARCHAR)
 PRINT 'Loaded silver.hc_instalments_payments successfully.';
 
 SET @start_time=GETDATE();
+TRUNCATE TABLE silver.hc_posh_cash_balance;
+PRINT'>>Truncating posh_cash_balance_table';
 PRINT'>>===============================================================================';
 PRINT'>>Loading data into silver layer posh cash balance table';
 PRINT'>>>==============================================================================';
@@ -325,6 +399,8 @@ PRINT'>>Load Duration' +CAST(DATEDIFF(second,@start_time,@end_time) AS NVARCHAR)
 PRINT 'Loaded silver.hc_posh_cash_balance successfully.';
 
 SET @start_time=GETDATE();
+TRUNCATE TABLE silver.hc_previous_application;
+PRINT'>>Truncating the previous applications table';
 PRINT'>>===============================================================================';
 PRINT'>>Loading data into silver layer previous application train table';
 PRINT'>>>==============================================================================';
